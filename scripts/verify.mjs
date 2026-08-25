@@ -91,7 +91,16 @@ for (const attr of usedAttrs) {
   if (html.includes(`${attr}=`)) { ok(`[${attr}] exists`); } else { fail(`app.js queries [${attr}], which is not in index.html`); }
 }
 
-/* 6. the licence is present and says MIT */
+/* 6. images the README embeds exist - a broken image renders as alt text on
+      the repository page and is easy not to notice. */
+const readme = readFileSync(join(root, 'README.md'), 'utf8');
+const images = [...readme.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map((m) => m[1]);
+for (const img of images) {
+  if (/^https?:/.test(img)) continue;
+  if (existsSync(join(root, img))) { ok(`README image -> ${img}`); } else { fail(`README embeds a missing image: ${img}`); }
+}
+
+/* 7. the licence is present and says MIT */
 const license = existsSync(join(root, 'LICENSE')) ? readFileSync(join(root, 'LICENSE'), 'utf8') : '';
 if (license.includes('MIT License')) { ok('LICENSE is MIT'); } else { fail('LICENSE is missing or is not the MIT licence'); }
 

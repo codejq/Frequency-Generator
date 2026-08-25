@@ -11,6 +11,12 @@ Built and open-sourced by **Quantum Billing** under the MIT License.
 > Replace that URL, and the `Source on GitHub` link in `index.html`, with your
 > real organisation and repository name once the repo is pushed.
 
+![The frequency generator running two oscillators at 47,999 Hz, showing the oscilloscope, the per-generator frequency, waveform, volume and balance controls, and the presets panel](docs/screenshot.png)
+
+*Two generators at the top of the ultrasonic range on a 96 kHz audio context.
+The sample rate and the resulting 48 kHz ceiling are shown under the scope —
+both depend on the device.*
+
 ---
 
 ## Features
@@ -79,8 +85,8 @@ node scripts/verify.mjs
 ```
 
 Verifies that every script parses, the manifest is valid JSON, every path
-referenced by `index.html` and precached by the service worker exists, and the
-licence is present. A broken relative path is the failure that looks fine
+referenced by `index.html`, precached by the service worker or embedded in this
+README exists, and the licence is present. A broken relative path is the failure that looks fine
 locally and 404s on Pages, so it is worth catching in CI.
 
 ## Project layout
@@ -95,6 +101,7 @@ assets/js/audio-engine.js     Web Audio: context, master bus, per-voice chains
 assets/js/app.js              state, UI, presets, visualiser
 scripts/verify.mjs            static checks used by CI
 docs/ROADMAP.md               phase 2: Android and iOS
+docs/screenshot.png           the image above
 ```
 
 Plain ES5-compatible JavaScript, no framework, no bundler. The whole app is a
