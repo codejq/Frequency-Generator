@@ -291,7 +291,9 @@ h1, h2 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
 .band[data-band="Infrasound"] { color: #d09bff; }
 .band[data-band="DC"] { color: var(--text-faint); }
 
-.nudge-row { display: flex; gap: 6px; flex-wrap: wrap; }
+/* A fixed six-column grid, not a wrapping flex row: the chips have to stay on
+   one line inside the narrower card column. */
+.nudge-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
 
 .chip {
   appearance: none;
@@ -303,7 +305,6 @@ h1, h2 { margin: 0; font-weight: 650; letter-spacing: -0.01em; }
   padding: 6px 9px;
   min-height: 32px;
   cursor: pointer;
-  flex: 1 1 auto;
   -webkit-tap-highlight-color: transparent;
 }
 .chip:hover { background: var(--bg-elev); color: var(--text); }
