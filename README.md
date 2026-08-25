@@ -33,8 +33,11 @@ both depend on the device.*
 | **Presets** | Save named setups, reload them later, delete what you no longer need. |
 | **Automatic session memory** | Your current setup is saved as you change it and restored on your next visit. Anything that was playing is offered as a one-tap resume. |
 | **Import / export** | Move your session and presets between browsers and devices as a JSON file. |
+| **English and Arabic** | Full interface in both, with proper right-to-left layout. Auto-detected, switchable in the header, remembered. |
 | **Mobile first** | Responsive down to small phone screens, with touch-sized controls. |
+| **Install to home screen** | Add it as a shortcut and it opens full screen like an app — no store, no download. |
 | **Offline** | Installable as a PWA; a service worker keeps it working with no connection. |
+| **Animal deterrent presets** | One tap sets up the frequencies commonly claimed for mosquitoes, rodents, cats and dogs. Read the caveats below first. |
 | **Private** | No accounts, no analytics, no network calls. All state lives in `localStorage` on your device. |
 
 ## Uses
@@ -42,6 +45,73 @@ both depend on the device.*
 Speaker and headphone testing, hearing range checks, tuning instruments,
 calibrating measurement equipment, generating beat frequencies from two close
 tones, room-mode and resonance hunting, ultrasonic transducer testing.
+
+## Languages
+
+The interface ships in **English and Arabic**, in one page rather than two
+builds — a shared link works for everyone and there is only one copy to deploy.
+
+- The language is picked automatically from the browser, and the choice you make
+  in the header is remembered.
+- `?lang=ar` and `?lang=en` force one, which is what to link to when sharing.
+- Arabic switches the document to `dir="rtl"` and the whole layout mirrors.
+
+One deliberate exception: **sliders, their scales and the nudge buttons stay
+left-to-right in both languages.** Those controls are physical, not linguistic —
+low frequency belongs at the low end of the travel, and the left speaker belongs
+on the left. Only the surrounding text mirrors. Values keep Western digits and
+`Hz`/`kHz`, as Arabic technical interfaces conventionally do, and each value is
+isolated from the bidi algorithm so `440.0 Hz` never renders as `Hz 440.0`.
+
+Adding a third language means adding one block to
+[assets/js/i18n.js](assets/js/i18n.js); CI fails the build if it does not cover
+every key the other has.
+
+## Install it on your phone — no app store
+
+Open the site on a phone and it offers to add itself to your home screen. Accept
+and it launches full screen, works offline, and behaves like an installed app.
+Phase 2 packages the same code for the stores; for most people this is already
+enough.
+
+- **Android / Chrome / Edge:** a bar appears offering *Install*. One tap hands
+  off to the browser's own install dialog.
+- **iPhone / iPad:** Safari has no install API, so the app shows the steps
+  instead — Share button → *Add to Home Screen*.
+- Dismissing it is respected: the prompt stays away for two weeks.
+
+**A page cannot install itself, by design.** No browser lets a site create a
+shortcut silently — it requires a user gesture and the browser's own permission
+dialog. What the app does is take the earliest moment the browser offers
+(`beforeinstallprompt`), ask you plainly, and pass your answer straight through.
+That is as close to automatic as the platform permits, and the reason is
+obvious: otherwise any page you opened could plant an icon on your phone.
+
+Installability requires the manifest, a service worker and HTTPS — all three are
+in place on GitHub Pages, but none of them work over `file://`.
+
+## Chasing animals away
+
+The deterrent panel adds a generator at the frequency usually claimed for a
+given animal: mosquitoes 17 kHz, rodents 22 kHz, cats 23 kHz, dogs 25 kHz.
+Nothing plays until you press Play on the card. Sine waves are used rather than
+square: at these frequencies a square wave's harmonics are past the Nyquist
+limit and buy nothing.
+
+**Be realistic about whether this works.** Independent studies have repeatedly
+found ultrasonic mosquito repellents ineffective — mosquitoes are not repelled
+by ultrasound, and several regulators have acted against products claiming
+otherwise. Results for cats, dogs and rodents are mixed at best: animals
+habituate to a constant tone quickly. On top of that, most phone speakers roll
+off above roughly 15 kHz, so a phone may emit almost nothing at 22–25 kHz even
+at full volume. The generator will faithfully produce the frequency; whether
+your hardware radiates it, and whether any animal cares, is another matter.
+
+**And be careful with it.** Do not aim it at a pet at close range or leave it
+running near one — these frequencies sit well inside a cat's or dog's hearing
+range and can genuinely distress them. Anything you cannot hear can still be
+loud enough to damage hearing, including that of children and young adults, who
+hear higher frequencies than most adults do.
 
 ## Run it
 
@@ -86,8 +156,12 @@ node scripts/verify.mjs
 
 Verifies that every script parses, the manifest is valid JSON, every path
 referenced by `index.html`, precached by the service worker or embedded in this
-README exists, and the licence is present. A broken relative path is the failure that looks fine
-locally and 404s on Pages, so it is worth catching in CI.
+README exists, every element id and class the JavaScript looks up is in the
+markup, and the licence is present. It also checks that **the two dictionaries
+cover exactly the same keys** and that every key the page asks for is defined —
+a missing Arabic string falls back to English silently at runtime, which is
+precisely the gap nobody notices until a user reports it. A broken relative path
+is the other failure that looks fine locally and 404s on Pages.
 
 ## Project layout
 
@@ -95,10 +169,12 @@ locally and 404s on Pages, so it is worth catching in CI.
 index.html                    markup and the generator card template
 manifest.webmanifest          PWA metadata
 sw.js                         service worker (network-first, cache fallback)
-assets/css/styles.css         all styling
+assets/css/styles.css         all styling, including the RTL rules
 assets/js/storage.js          localStorage wrapper, guarded for private mode
+assets/js/i18n.js             English and Arabic dictionaries, direction switch
 assets/js/audio-engine.js     Web Audio: context, master bus, per-voice chains
 assets/js/app.js              state, UI, presets, visualiser
+assets/js/install.js          add-to-home-screen prompt
 scripts/verify.mjs            static checks used by CI
 docs/ROADMAP.md               phase 2: Android and iOS
 docs/screenshot.png           the image above

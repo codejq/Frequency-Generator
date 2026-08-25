@@ -1,19 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#0a0a0b" />
 <title>Frequency Generator &middot; Quantum Billing</title>
 <meta name="description" content="Multi-oscillator tone and frequency generator. 0 Hz to ultrasonic, multiple simultaneous waveforms, presets saved in your browser. Open source (MIT) by Quantum Billing." />
+<link rel="alternate" hreflang="en" href="./?lang=en" />
+<link rel="alternate" hreflang="ar" href="./?lang=ar" />
+<link rel="alternate" hreflang="x-default" href="./" />
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Freq Gen" />
 <link rel="stylesheet" href="./assets/css/styles.css" />
 </head>
 <body>
 
-<a class="skip-link" href="#generators">Skip to generators</a>
+<a class="skip-link" href="#generators" data-i18n="skip">Skip to generators</a>
 
 <header class="topbar">
   <div class="brand">
@@ -21,93 +28,138 @@
       <svg viewBox="0 0 32 32" width="26" height="26"><path d="M2 16 Q8 2 14 16 T26 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
     </div>
     <div class="brand-text">
-      <h1>Frequency Generator</h1>
-      <p class="tagline">Quantum Billing &middot; open source, MIT</p>
+      <h1 data-i18n="app.title">Frequency Generator</h1>
+      <p class="tagline" data-i18n="app.tagline">Quantum Billing &middot; open source, MIT</p>
     </div>
   </div>
 
   <div class="topbar-actions">
+    <div class="lang-switch" role="group" data-i18n-attr="aria-label:lang.aria">
+      <button class="seg" data-lang="en" type="button" data-i18n-attr="title:lang.switchToEnglish">EN</button>
+      <button class="seg" data-lang="ar" type="button" data-i18n-attr="title:lang.switchToArabic" lang="ar">&#1593;</button>
+    </div>
     <button id="btnPlayAll" class="btn btn-primary" type="button">
-      <span class="ico" aria-hidden="true">&#9654;</span> Play all
+      <span class="ico" aria-hidden="true">&#9654;</span> <span data-i18n="btn.playAll">Play all</span>
     </button>
     <button id="btnStopAll" class="btn" type="button">
-      <span class="ico" aria-hidden="true">&#9632;</span> Stop all
+      <span class="ico" aria-hidden="true">&#9632;</span> <span data-i18n="btn.stopAll">Stop all</span>
     </button>
     <button id="btnAdd" class="btn btn-ghost" type="button">
-      <span class="ico" aria-hidden="true">&#43;</span> Add<span class="btn-word">generator</span>
+      <span class="ico" aria-hidden="true">&#43;</span> <span data-i18n="btn.add">Add</span><span class="btn-word" data-i18n="btn.addWord">generator</span>
     </button>
   </div>
 </header>
 
 <main class="wrap">
 
+  <div id="installBar" class="install-bar" hidden>
+    <span class="install-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>
+    </span>
+    <div class="install-text">
+      <strong data-i18n="install.title">Add to your home screen</strong>
+      <span id="installBody" data-i18n="install.body">Install this as a shortcut and it opens like an app, full screen and offline.</span>
+    </div>
+    <button id="btnInstall" class="btn btn-primary btn-sm" type="button" data-i18n="install.button">Install</button>
+    <button id="btnInstallDismiss" class="btn btn-ghost btn-sm" type="button" data-i18n="install.dismiss">Not now</button>
+  </div>
+
   <div id="resumeBar" class="resume-bar" hidden>
-    <span>Your last session had <strong id="resumeCount">0</strong> generator(s) running.</span>
-    <button id="btnResume" class="btn btn-primary btn-sm" type="button">Resume playback</button>
-    <button id="btnDismissResume" class="btn btn-ghost btn-sm" type="button">Dismiss</button>
+    <span id="resumeText">Your last session had 0 generator(s) running.</span>
+    <button id="btnResume" class="btn btn-primary btn-sm" type="button" data-i18n="resume.play">Resume playback</button>
+    <button id="btnDismissResume" class="btn btn-ghost btn-sm" type="button" data-i18n="resume.dismiss">Dismiss</button>
   </div>
 
   <div id="audioNotice" class="notice" hidden></div>
 
-  <section class="panel scope-panel" aria-label="Output visualiser">
+  <section class="panel scope-panel" data-i18n-attr="aria-label:scope.aria">
     <canvas id="scope" class="scope" width="1200" height="320"></canvas>
     <div class="scope-bar">
-      <div class="scope-modes" role="group" aria-label="Visualiser mode">
-        <button class="seg is-active" data-scope-mode="wave" type="button">Scope</button>
-        <button class="seg" data-scope-mode="spectrum" type="button">Spectrum</button>
+      <div class="scope-modes" role="group" data-i18n-attr="aria-label:scope.modes">
+        <button class="seg is-active" data-scope-mode="wave" type="button" data-i18n="scope.wave">Scope</button>
+        <button class="seg" data-scope-mode="spectrum" type="button" data-i18n="scope.spectrum">Spectrum</button>
       </div>
       <dl class="stats">
-        <div><dt>Active</dt><dd id="statActive">0</dd></div>
-        <div><dt>Sample rate</dt><dd id="statRate">&mdash;</dd></div>
-        <div><dt>Max freq</dt><dd id="statMax">&mdash;</dd></div>
+        <div><dt data-i18n="stats.active">Active</dt><dd id="statActive">0</dd></div>
+        <div><dt data-i18n="stats.rate">Sample rate</dt><dd id="statRate">&mdash;</dd></div>
+        <div><dt data-i18n="stats.max">Max freq</dt><dd id="statMax">&mdash;</dd></div>
       </dl>
       <label class="master-vol">
-        <span>Master</span>
-        <input id="masterVol" type="range" min="0" max="100" step="1" value="80" aria-label="Master volume" />
+        <span data-i18n="master">Master</span>
+        <input id="masterVol" class="ltr-control" type="range" min="0" max="100" step="1" value="80" data-i18n-attr="aria-label:master.aria" />
         <output id="masterVolOut" class="readout readout-sm">80%</output>
       </label>
     </div>
   </section>
 
-  <section id="generators" class="grid" aria-label="Generators"></section>
+  <section id="generators" class="grid" data-i18n-attr="aria-label:gen.aria"></section>
 
-  <section class="panel presets" aria-label="Presets and data">
-    <h2 class="panel-title">Presets</h2>
-    <p class="hint">Everything is stored in this browser only. Your current setup is saved automatically and restored next time.</p>
+  <section class="panel deterrent" data-i18n-attr="aria-label:deterrent.title">
+    <h2 class="panel-title" data-i18n="deterrent.title">Animal and insect deterrent</h2>
+    <p class="hint" data-i18n="deterrent.intro"></p>
+    <div class="deter-row">
+      <button class="deter-chip" type="button" data-freq="17000" data-name="deterrent.mosquito">
+        <span class="deter-emoji" aria-hidden="true">&#129436;</span>
+        <span data-i18n="deterrent.mosquito">Mosquitoes</span>
+        <span class="deter-freq">17.00 kHz</span>
+      </button>
+      <button class="deter-chip" type="button" data-freq="22000" data-name="deterrent.rodent">
+        <span class="deter-emoji" aria-hidden="true">&#128045;</span>
+        <span data-i18n="deterrent.rodent">Rodents</span>
+        <span class="deter-freq">22.00 kHz</span>
+      </button>
+      <button class="deter-chip" type="button" data-freq="23000" data-name="deterrent.cat">
+        <span class="deter-emoji" aria-hidden="true">&#128008;</span>
+        <span data-i18n="deterrent.cat">Cats</span>
+        <span class="deter-freq">23.00 kHz</span>
+      </button>
+      <button class="deter-chip" type="button" data-freq="25000" data-name="deterrent.dog">
+        <span class="deter-emoji" aria-hidden="true">&#128021;</span>
+        <span data-i18n="deterrent.dog">Dogs</span>
+        <span class="deter-freq">25.00 kHz</span>
+      </button>
+    </div>
+    <p class="note-block" data-i18n="deterrent.honest"></p>
+    <p class="note-block note-warn" data-i18n="deterrent.care"></p>
+  </section>
+
+  <section class="panel presets" data-i18n-attr="aria-label:presets.aria">
+    <h2 class="panel-title" data-i18n="presets.title">Presets</h2>
+    <p class="hint" data-i18n="presets.hint"></p>
     <div class="preset-row">
-      <input id="presetName" class="text-input" type="text" placeholder="Preset name" maxlength="40" aria-label="Preset name" />
-      <button id="btnSavePreset" class="btn btn-primary btn-sm" type="button">Save current</button>
+      <input id="presetName" class="text-input" type="text" maxlength="40" data-i18n-attr="placeholder:presets.name;aria-label:presets.name" />
+      <button id="btnSavePreset" class="btn btn-primary btn-sm" type="button" data-i18n="presets.save">Save current</button>
     </div>
     <div class="preset-row">
-      <select id="presetList" class="text-input" aria-label="Saved presets"></select>
-      <button id="btnLoadPreset" class="btn btn-sm" type="button">Load</button>
-      <button id="btnDeletePreset" class="btn btn-ghost btn-sm" type="button">Delete</button>
+      <select id="presetList" class="text-input" data-i18n-attr="aria-label:presets.saved"></select>
+      <button id="btnLoadPreset" class="btn btn-sm" type="button" data-i18n="presets.load">Load</button>
+      <button id="btnDeletePreset" class="btn btn-ghost btn-sm" type="button" data-i18n="presets.delete">Delete</button>
     </div>
     <div class="preset-row">
-      <button id="btnExport" class="btn btn-ghost btn-sm" type="button">Export JSON</button>
-      <button id="btnImport" class="btn btn-ghost btn-sm" type="button">Import JSON</button>
-      <button id="btnReset" class="btn btn-ghost btn-sm btn-danger" type="button">Reset all</button>
+      <button id="btnExport" class="btn btn-ghost btn-sm" type="button" data-i18n="presets.export">Export JSON</button>
+      <button id="btnImport" class="btn btn-ghost btn-sm" type="button" data-i18n="presets.import">Import JSON</button>
+      <button id="btnReset" class="btn btn-ghost btn-sm btn-danger" type="button" data-i18n="presets.reset">Reset all</button>
       <input id="importFile" type="file" accept="application/json,.json" hidden />
     </div>
   </section>
 
-  <section class="panel safety" aria-label="Safety notice">
-    <h2 class="panel-title">Before you turn it up</h2>
+  <section class="panel safety" data-i18n-attr="aria-label:safety.aria">
+    <h2 class="panel-title" data-i18n="safety.title">Before you turn it up</h2>
     <ul class="safety-list">
-      <li>Start at a low volume. Sustained tones can damage hearing and speakers.</li>
-      <li>Ultrasonic content above ~20 kHz is inaudible but still real energy &mdash; tweeters can overheat.</li>
-      <li>Frequencies below ~20 Hz mostly move air, not sound. Most phone speakers reproduce neither end.</li>
-      <li>The usable top end is half the audio sample rate shown above (Nyquist limit).</li>
+      <li data-i18n="safety.1"></li>
+      <li data-i18n="safety.2"></li>
+      <li data-i18n="safety.3"></li>
+      <li data-i18n="safety.4"></li>
     </ul>
   </section>
 </main>
 
 <footer class="footer">
-  <p>&copy; <span id="year">2026</span> Quantum Billing &mdash; released under the MIT License.</p>
+  <p id="footerCopy">&copy; 2026 Quantum Billing &mdash; released under the MIT License.</p>
   <p class="footer-links">
-    <a id="repoLink" href="https://github.com/quantum-billing/frequency-generator" rel="noopener">Source on GitHub</a>
+    <a id="repoLink" href="https://github.com/quantum-billing/frequency-generator" rel="noopener" data-i18n="footer.source">Source on GitHub</a>
     <span aria-hidden="true">&middot;</span>
-    <span>Phase 1: web. Android &amp; iOS to follow.</span>
+    <span data-i18n="footer.phase">Phase 1: web. Android &amp; iOS to follow.</span>
   </p>
 </footer>
 
@@ -115,11 +167,11 @@
   <article class="card gen">
     <header class="gen-head">
       <span class="led" aria-hidden="true"></span>
-      <input class="gen-name" type="text" maxlength="28" aria-label="Generator name" />
+      <input class="gen-name" type="text" maxlength="28" data-i18n-attr="aria-label:gen.name" />
       <div class="gen-head-actions">
-        <button class="icon-btn js-solo" type="button" title="Solo (play only this one)" aria-label="Solo">S</button>
-        <button class="icon-btn js-duplicate" type="button" title="Duplicate" aria-label="Duplicate">&#10697;</button>
-        <button class="icon-btn js-remove" type="button" title="Remove" aria-label="Remove">&#10005;</button>
+        <button class="icon-btn js-solo" type="button" data-i18n-attr="title:gen.solo;aria-label:gen.solo"><span data-i18n="gen.soloShort">S</span></button>
+        <button class="icon-btn js-duplicate" type="button" data-i18n-attr="title:gen.duplicate;aria-label:gen.duplicate">&#10697;</button>
+        <button class="icon-btn js-remove" type="button" data-i18n-attr="title:gen.remove;aria-label:gen.remove">&#10005;</button>
       </div>
     </header>
 
@@ -127,19 +179,19 @@
       <div class="gen-left">
         <div class="field">
           <div class="field-head">
-            <span class="field-label">Frequency</span>
+            <span class="field-label" data-i18n="gen.frequency">Frequency</span>
             <output class="readout js-freq-readout">440.0 Hz</output>
           </div>
           <div class="freq-row">
-            <input class="slider js-freq-slider" type="range" min="0" max="1000" step="0.1" aria-label="Frequency" />
-            <input class="num-input js-freq-input" type="number" min="0" step="0.1" inputmode="decimal" aria-label="Frequency in hertz" />
+            <input class="slider ltr-control js-freq-slider" type="range" min="0" max="1000" step="0.1" data-i18n-attr="aria-label:gen.frequency" />
+            <input class="num-input js-freq-input" type="number" min="0" step="0.1" inputmode="decimal" data-i18n-attr="aria-label:gen.frequencyHz" />
           </div>
-          <div class="scale-row">
+          <div class="scale-row ltr-control">
             <span>0 Hz</span>
             <span class="js-band band">Audible</span>
             <span class="js-max">20 kHz</span>
           </div>
-          <div class="nudge-row">
+          <div class="nudge-row ltr-control">
             <button class="chip js-nudge" data-delta="-10" type="button">&minus;10</button>
             <button class="chip js-nudge" data-delta="-1" type="button">&minus;1</button>
             <button class="chip js-nudge" data-delta="-0.1" type="button">&minus;0.1</button>
@@ -151,30 +203,34 @@
 
         <div class="field">
           <div class="field-head">
-            <span class="field-label">Volume</span>
+            <span class="field-label" data-i18n="gen.volume">Volume</span>
             <output class="readout js-vol-readout">50%</output>
           </div>
-          <input class="slider js-vol" type="range" min="0" max="100" step="1" aria-label="Volume" />
+          <input class="slider ltr-control js-vol" type="range" min="0" max="100" step="1" data-i18n-attr="aria-label:gen.volume" />
         </div>
 
         <div class="field">
           <div class="field-head">
-            <span class="field-label">Balance</span>
+            <span class="field-label" data-i18n="gen.balance">Balance</span>
             <output class="readout js-pan-readout">Center</output>
           </div>
-          <input class="slider js-pan" type="range" min="-100" max="100" step="1" aria-label="Stereo balance" />
-          <div class="scale-row"><span>Left</span><span>Center</span><span>Right</span></div>
+          <input class="slider ltr-control js-pan" type="range" min="-100" max="100" step="1" data-i18n-attr="aria-label:gen.balance" />
+          <div class="scale-row ltr-control">
+            <span data-i18n="gen.left">Left</span>
+            <span data-i18n="gen.center">Center</span>
+            <span data-i18n="gen.right">Right</span>
+          </div>
         </div>
       </div>
 
       <div class="gen-right">
         <div class="field">
-          <span class="field-label">Waveform</span>
-          <div class="seg-group js-waves" role="group" aria-label="Waveform type">
-            <button class="seg" data-wave="sine" type="button">Sine</button>
-            <button class="seg" data-wave="square" type="button">Square</button>
-            <button class="seg" data-wave="sawtooth" type="button">Saw</button>
-            <button class="seg" data-wave="triangle" type="button">Tri</button>
+          <span class="field-label" data-i18n="gen.waveform">Waveform</span>
+          <div class="seg-group js-waves" role="group" data-i18n-attr="aria-label:gen.waveformAria">
+            <button class="seg" data-wave="sine" type="button" data-i18n="wave.sine">Sine</button>
+            <button class="seg" data-wave="square" type="button" data-i18n="wave.square">Square</button>
+            <button class="seg" data-wave="sawtooth" type="button" data-i18n="wave.sawtooth">Saw</button>
+            <button class="seg" data-wave="triangle" type="button" data-i18n="wave.triangle">Tri</button>
           </div>
         </div>
         <div class="wave-preview">
@@ -185,14 +241,16 @@
     </div>
 
     <footer class="gen-foot">
-      <button class="btn btn-play js-play" type="button"><span class="ico" aria-hidden="true">&#9654;</span> Play</button>
+      <button class="btn btn-play js-play" type="button"></button>
       <span class="js-note note-tag"></span>
     </footer>
   </article>
 </template>
 
 <script src="./assets/js/storage.js"></script>
+<script src="./assets/js/i18n.js"></script>
 <script src="./assets/js/audio-engine.js"></script>
 <script src="./assets/js/app.js"></script>
+<script src="./assets/js/install.js"></script>
 </body>
 </html>

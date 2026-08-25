@@ -11,6 +11,7 @@
 
   var SESSION_KEY = 'qb.freqgen.session.v1';
   var PRESETS_KEY = 'qb.freqgen.presets.v1';
+  var PREFS_KEY = 'qb.freqgen.prefs.v1';
 
   function available() {
     try {
@@ -65,6 +66,18 @@
       return (presets && typeof presets === 'object' && !Array.isArray(presets)) ? presets : {};
     },
     savePresets: function (presets) { return writeJSON(PRESETS_KEY, presets); },
+
+    /* Small single-value preferences (language, install prompt state) share
+       one key, so they survive a preset reset and stay out of the session. */
+    getPref: function (name, fallback) {
+      var prefs = readJSON(PREFS_KEY, {});
+      return Object.prototype.hasOwnProperty.call(prefs, name) ? prefs[name] : fallback;
+    },
+    setPref: function (name, value) {
+      var prefs = readJSON(PREFS_KEY, {});
+      prefs[name] = value;
+      return writeJSON(PREFS_KEY, prefs);
+    },
 
     clearAll: function () { remove(SESSION_KEY); remove(PRESETS_KEY); }
   };

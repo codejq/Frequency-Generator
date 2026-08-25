@@ -5,7 +5,7 @@
  * Network-first with a cache fallback: the app keeps working offline, but a
  * fresh deploy on GitHub Pages is never masked by a stale cached copy.
  */
-var CACHE = 'freqgen-v1';
+var CACHE = 'freqgen-v2';
 
 var ASSETS = [
   './',
@@ -13,8 +13,10 @@ var ASSETS = [
   './manifest.webmanifest',
   './assets/css/styles.css',
   './assets/js/storage.js',
+  './assets/js/i18n.js',
   './assets/js/audio-engine.js',
   './assets/js/app.js',
+  './assets/js/install.js',
   './assets/icons/icon.svg',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png'

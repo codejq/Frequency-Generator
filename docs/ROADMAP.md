@@ -37,6 +37,8 @@ The repository root is already a valid `webDir`: no build output to point at.
 | Wake lock | Screen sleep should not interrupt a running test. | `@capacitor-community/keep-awake` while any generator is playing. |
 | Store metadata | Play Store and App Store listings. | Reuse the icons in `assets/icons/`; generate the full density set with `@capacitor/assets`. |
 | Safety copy | Store review asks about audio that can damage hearing. | The in-app safety panel already covers it; mirror it in the listing. |
+| Localisation | The app is already English + Arabic with RTL. | Declare `ar` in the store listings and in `Info.plist` / `resources`; the WebView inherits the page's own `dir` handling, so nothing in the UI needs porting. |
+| Store necessity | The PWA install already gives most people a home-screen app. | Worth confirming the native shells add something real — background audio and a higher hardware sample rate are the two that do. |
 
 ### Alternative
 

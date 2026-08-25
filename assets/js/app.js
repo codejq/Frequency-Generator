@@ -7,17 +7,14 @@
 
   var STATE_VERSION = 1;
 
-  var WAVE_INFO = {
-    sine: 'Pure tone, no harmonics. Best for tuning, hearing tests and measurement.',
-    square: 'Odd harmonics, hard edges. Loud and buzzy; useful for testing clipping.',
-    sawtooth: 'All harmonics. The brightest and harshest of the four.',
-    triangle: 'Odd harmonics that fall off fast. Softer than square, richer than sine.'
-  };
+  var WAVES = ['sine', 'square', 'sawtooth', 'triangle'];
 
   var NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
   var engine = new global.AudioEngine();
   var store = global.FreqStore;
+
+  function t(key, params) { return global.I18N.t(key, params); }
 
   var state = null;
   var cards = {};           // id -> {el, refs}
@@ -71,11 +68,18 @@
     return hz.toFixed(2) + ' Hz';
   }
 
+  /** Returns a key, not a label: the label depends on the current language. */
   function bandOf(hz) {
-    if (hz <= 0) return 'DC';
-    if (hz < 20) return 'Infrasound';
-    if (hz < 20000) return 'Audible';
-    return 'Ultrasonic';
+    if (hz <= 0) return 'dc';
+    if (hz < 20) return 'infrasound';
+    if (hz < 20000) return 'audible';
+    return 'ultrasonic';
+  }
+
+  function setBand(el, hz) {
+    var key = bandOf(hz);
+    el.textContent = t('band.' + key);
+    el.setAttribute('data-band', key);
   }
 
   function noteOf(hz) {
@@ -103,7 +107,7 @@
   function defaultGenerator(overrides) {
     var gen = {
       id: nextId(),
-      name: 'Generator ' + (Object.keys(cards).length + 1),
+      name: t('gen.default', { n: Object.keys(cards).length + 1 }),
       freq: 440,
       wave: 'sine',
       volume: 0.5,
@@ -123,7 +127,7 @@
       v: STATE_VERSION,
       master: { volume: 0.8 },
       generators: [
-        { id: nextId(), name: 'Generator 1', freq: 440, wave: 'sine', volume: 0.5, pan: 0, playing: false }
+        { id: nextId(), name: t('gen.default', { n: 1 }), freq: 440, wave: 'sine', volume: 0.5, pan: 0, playing: false }
       ]
     };
   }
@@ -144,9 +148,9 @@
       var pan = Number(g.pan);
       generators.push({
         id: nextId(),
-        name: typeof g.name === 'string' && g.name.trim() ? g.name.slice(0, 28) : 'Generator ' + (i + 1),
+        name: typeof g.name === 'string' && g.name.trim() ? g.name.slice(0, 28) : t('gen.default', { n: i + 1 }),
         freq: isFinite(freq) ? clamp(freq, 0, maxFreq()) : 440,
-        wave: WAVE_INFO[g.wave] ? g.wave : 'sine',
+        wave: WAVES.indexOf(g.wave) >= 0 ? g.wave : 'sine',
         volume: isFinite(volume) ? clamp(volume, 0, 1) : 0.5,
         pan: isFinite(pan) ? clamp(pan, -1, 1) : 0,
         playing: g.playing === true
@@ -209,7 +213,7 @@
       gen.playing = true;
       hideNotice();
     } catch (err) {
-      showNotice(err && err.message ? err.message : 'Audio could not be started.');
+      showNotice(err && err.message ? err.message : t('notice.audioFailed'));
       gen.playing = false;
     }
     updateCard(gen);
@@ -247,6 +251,7 @@
   function buildCard(gen) {
     var frag = els.template.content.cloneNode(true);
     var el = frag.querySelector('.gen');
+    global.I18N.apply(el);   // the template's own labels
 
     var refs = {
       el: el,
@@ -332,7 +337,7 @@
 
     el.querySelector('.js-duplicate').addEventListener('click', function () {
       addGenerator({
-        name: gen.name + ' copy',
+        name: t('gen.copy', { name: gen.name }).slice(0, 28),
         freq: gen.freq, wave: gen.wave, volume: gen.volume, pan: gen.pan
       });
     });
@@ -353,8 +358,7 @@
     var refs = cards[gen.id];
     if (!refs) return;
     refs.freqReadout.textContent = formatFreq(hz);
-    refs.band.textContent = bandOf(hz);
-    refs.band.setAttribute('data-band', bandOf(hz));
+    setBand(refs.band, hz);
     refs.note.textContent = noteOf(hz);
     if (source !== 'input') refs.freqInput.value = String(hz);
     if (source !== 'slider') {
@@ -368,8 +372,8 @@
 
   function panLabel(pan) {
     var pct = Math.round(pan * 100);
-    if (pct === 0) return 'Center';
-    return (pct < 0 ? 'L ' : 'R ') + Math.abs(pct) + '%';
+    if (pct === 0) return t('pan.center');
+    return t(pct < 0 ? 'pan.left' : 'pan.right', { pct: Math.abs(pct) });
   }
 
   function updateCard(gen) {
@@ -378,8 +382,7 @@
 
     if (document.activeElement !== refs.name) refs.name.value = gen.name;
     refs.freqReadout.textContent = formatFreq(gen.freq);
-    refs.band.textContent = bandOf(gen.freq);
-    refs.band.setAttribute('data-band', bandOf(gen.freq));
+    setBand(refs.band, gen.freq);
     refs.note.textContent = noteOf(gen.freq);
 
     if (document.activeElement !== refs.freqInput) refs.freqInput.value = String(gen.freq);
@@ -399,19 +402,19 @@
       buttons[i].setAttribute('aria-pressed', on ? 'true' : 'false');
     }
 
-    refs.waveDesc.textContent = WAVE_INFO[gen.wave] || '';
+    refs.waveDesc.textContent = t('wave.desc.' + gen.wave);
     drawPreview(refs.preview, gen.wave);
 
     refs.el.classList.toggle('is-playing', gen.playing);
-    refs.play.innerHTML = gen.playing
-      ? '<span class="ico" aria-hidden="true">&#9632;</span> Stop'
-      : '<span class="ico" aria-hidden="true">&#9654;</span> Play';
+    refs.play.innerHTML = '<span class="ico" aria-hidden="true">'
+      + (gen.playing ? '&#9632;' : '&#9654;') + '</span> ';
+    refs.play.appendChild(document.createTextNode(t(gen.playing ? 'gen.stop' : 'gen.play')));
     refs.solo.classList.toggle('is-on', gen.playing && engine.activeCount() === 1);
   }
 
   function addGenerator(overrides) {
     if (state.generators.length >= 32) {
-      showNotice('32 generators is the limit - that is already a lot of simultaneous tones.');
+      showNotice(t('notice.limit'));
       return;
     }
     var gen = defaultGenerator(overrides);
@@ -605,7 +608,7 @@
     if (!names.length) {
       var empty = document.createElement('option');
       empty.value = '';
-      empty.textContent = 'No presets saved yet';
+      empty.textContent = t('presets.none');
       els.presetList.appendChild(empty);
       els.presetList.disabled = true;
       return;
@@ -623,14 +626,14 @@
 
   function savePreset() {
     var name = (els.presetName.value || '').trim();
-    if (!name) { showNotice('Give the preset a name first.'); els.presetName.focus(); return; }
+    if (!name) { showNotice(t('notice.presetName')); els.presetName.focus(); return; }
 
     var presets = store.loadPresets();
-    if (presets[name] && !global.confirm('Overwrite the preset "' + name + '"?')) return;
+    if (presets[name] && !global.confirm(t('confirm.overwrite', { name: name }))) return;
 
     presets[name] = snapshot();
     if (!store.savePresets(presets)) {
-      showNotice('This browser is blocking local storage, so presets cannot be saved.');
+      showNotice(t('notice.presetStorage'));
       return;
     }
     els.presetName.value = '';
@@ -649,7 +652,7 @@
   function deletePreset() {
     var name = els.presetList.value;
     if (!name) return;
-    if (!global.confirm('Delete the preset "' + name + '"?')) return;
+    if (!global.confirm(t('confirm.deletePreset', { name: name }))) return;
     var presets = store.loadPresets();
     delete presets[name];
     store.savePresets(presets);
@@ -694,7 +697,7 @@
       try {
         data = JSON.parse(String(reader.result));
       } catch (err) {
-        showNotice('That file is not valid JSON.');
+        showNotice(t('notice.badJson'));
         return;
       }
       if (data && data.presets && typeof data.presets === 'object') {
@@ -711,12 +714,12 @@
       applyState(sanitize(session));
       hideNotice();
     };
-    reader.onerror = function () { showNotice('That file could not be read.'); };
+    reader.onerror = function () { showNotice(t('notice.unreadable')); };
     reader.readAsText(file);
   }
 
   function resetAll() {
-    if (!global.confirm('Delete every generator and every saved preset in this browser?')) return;
+    if (!global.confirm(t('confirm.reset'))) return;
     engine.stopAll();
     store.clearAll();
     seq = 0;
@@ -739,13 +742,68 @@
     els.notice.hidden = true;
   }
 
+  function setLanguage(lang) {
+    global.I18N.set(lang);
+  }
+
+  /** Re-render everything the dictionary touches that is not a static label. */
+  function refreshTexts() {
+    var buttons = document.querySelectorAll('[data-lang]');
+    for (var b = 0; b < buttons.length; b++) {
+      buttons[b].classList.toggle('is-active', buttons[b].getAttribute('data-lang') === global.I18N.current());
+    }
+
+    var chips = document.querySelectorAll('.deter-chip');
+    for (var c = 0; c < chips.length; c++) {
+      var out = chips[c].querySelector('.deter-freq');
+      if (out) out.textContent = formatFreq(parseFloat(chips[c].getAttribute('data-freq')));
+    }
+
+    els.footerCopy.textContent = t('footer.copy', { year: new Date().getFullYear() });
+    if (pendingResume.length) {
+      els.resumeText.textContent = t('resume.text', { count: pendingResume.length });
+    }
+
+    for (var i = 0; i < state.generators.length; i++) updateCard(state.generators[i]);
+
+    var selected = els.presetList.value;
+    refreshPresetList(selected);
+    updateStats();
+  }
+
   function updateStats() {
     els.statActive.textContent = String(engine.activeCount());
-    els.statRate.textContent = engine.ctx ? (engine.sampleRate() / 1000).toFixed(1) + ' kHz' : 'idle';
+    els.statRate.textContent = engine.ctx ? (engine.sampleRate() / 1000).toFixed(1) + ' kHz' : t('stats.idle');
     els.statMax.textContent = formatFreq(maxFreq());
   }
 
   function bindChrome() {
+    var langButtons = document.querySelectorAll('[data-lang]');
+    for (var l = 0; l < langButtons.length; l++) {
+      langButtons[l].addEventListener('click', function (event) {
+        setLanguage(event.currentTarget.getAttribute('data-lang'));
+      });
+    }
+
+    var deterChips = document.querySelectorAll('[data-freq]');
+    for (var d = 0; d < deterChips.length; d++) {
+      /* Add the generator but do not start it: a 25 kHz tone you cannot hear
+         is not something to begin playing on a single tap. */
+      deterChips[d].addEventListener('click', function (event) {
+        var chip = event.currentTarget;
+        addGenerator({
+          name: t(chip.getAttribute('data-name')),
+          freq: clamp(parseFloat(chip.getAttribute('data-freq')), 0, maxFreq()),
+          /* Sine, not square: at these frequencies the harmonics of a square
+             are past the Nyquist limit and buy nothing but heat. */
+          wave: 'sine',
+          volume: 0.6
+        });
+        var last = els.grid.lastElementChild;
+        if (last && last.scrollIntoView) last.scrollIntoView({ block: 'nearest' });
+      });
+    }
+
     els.playAll.addEventListener('click', playAll);
     els.stopAll.addEventListener('click', stopAll);
     els.add.addEventListener('click', function () { addGenerator(); });
@@ -848,22 +906,26 @@
       reset: $('btnReset'),
       notice: $('audioNotice'),
       resumeBar: $('resumeBar'),
-      resumeCount: $('resumeCount'),
+      resumeText: $('resumeText'),
       resume: $('btnResume'),
-      dismissResume: $('btnDismissResume')
+      dismissResume: $('btnDismissResume'),
+      footerCopy: $('footerCopy')
     };
 
-    $('year').textContent = String(new Date().getFullYear());
+    /* Language first: default generator names and every label below depend
+       on it. Not persisted here - reading a stored choice is not a choice. */
+    global.I18N.set(global.I18N.detect(), { persist: false });
+    global.I18N.onChange(refreshTexts);
 
     if (!engine.isSupported()) {
-      showNotice('This browser has no Web Audio support, so no tone can be generated.');
+      showNotice(t('notice.noAudio'));
     } else {
       try {
         /* Created up front (suspended until a gesture) so the real sample rate
            and Nyquist limit are known before the first slider is drawn. */
         engine.init();
       } catch (err) {
-        showNotice(err && err.message ? err.message : 'Audio could not be initialised.');
+        showNotice(err && err.message ? err.message : t('notice.audioInit'));
       }
     }
 
@@ -871,7 +933,7 @@
     state = saved ? sanitize(saved) : defaultState();
 
     if (!store.isAvailable()) {
-      showNotice('Local storage is blocked in this browser, so settings will not be remembered.');
+      showNotice(t('notice.storageBlocked'));
     }
 
     /* Autoplay is not permitted without a gesture, so anything that was
@@ -888,13 +950,17 @@
     refreshPresetList();
 
     if (pendingResume.length) {
-      els.resumeCount.textContent = String(pendingResume.length);
+      els.resumeText.textContent = t('resume.text', { count: pendingResume.length });
       els.resumeBar.hidden = false;
     }
 
+    refreshTexts();
     loop();
     registerServiceWorker();
   }
+
+  /* install.js needs a way to say something in the page's own notice strip. */
+  global.FreqGen = { notice: function (message) { showNotice(message); } };
 
   /* Offline support. Only over https (or localhost) - browsers refuse to
      register a worker on file:// or plain http, and that is not an error
