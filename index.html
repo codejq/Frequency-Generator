@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0a0b" />
+<title>Frequency Generator &middot; Quantum Billing</title>
+<meta name="description" content="Multi-oscillator tone and frequency generator. 0 Hz to ultrasonic, multiple simultaneous waveforms, presets saved in your browser. Open source (MIT) by Quantum Billing." />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" href="./assets/icons/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="./assets/icons/apple-touch-icon.png" />
+<link rel="stylesheet" href="./assets/css/styles.css" />
+</head>
+<body>
+
+<a class="skip-link" href="#generators">Skip to generators</a>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 32 32" width="26" height="26"><path d="M2 16 Q8 2 14 16 T26 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+    </div>
+    <div class="brand-text">
+      <h1>Frequency Generator</h1>
+      <p class="tagline">Quantum Billing &middot; open source, MIT</p>
+    </div>
+  </div>
+
+  <div class="topbar-actions">
+    <button id="btnPlayAll" class="btn btn-primary" type="button">
+      <span class="ico" aria-hidden="true">&#9654;</span> Play all
+    </button>
+    <button id="btnStopAll" class="btn" type="button">
+      <span class="ico" aria-hidden="true">&#9632;</span> Stop all
+    </button>
+    <button id="btnAdd" class="btn btn-ghost" type="button">
+      <span class="ico" aria-hidden="true">&#43;</span> Add<span class="btn-word"> generator</span>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <div id="resumeBar" class="resume-bar" hidden>
+    <span>Your last session had <strong id="resumeCount">0</strong> generator(s) running.</span>
+    <button id="btnResume" class="btn btn-primary btn-sm" type="button">Resume playback</button>
+    <button id="btnDismissResume" class="btn btn-ghost btn-sm" type="button">Dismiss</button>
+  </div>
+
+  <div id="audioNotice" class="notice" hidden></div>
+
+  <section class="panel scope-panel" aria-label="Output visualiser">
+    <canvas id="scope" class="scope" width="1200" height="320"></canvas>
+    <div class="scope-bar">
+      <div class="scope-modes" role="group" aria-label="Visualiser mode">
+        <button class="seg is-active" data-scope-mode="wave" type="button">Scope</button>
+        <button class="seg" data-scope-mode="spectrum" type="button">Spectrum</button>
+      </div>
+      <dl class="stats">
+        <div><dt>Active</dt><dd id="statActive">0</dd></div>
+        <div><dt>Sample rate</dt><dd id="statRate">&mdash;</dd></div>
+        <div><dt>Max freq</dt><dd id="statMax">&mdash;</dd></div>
+      </dl>
+      <label class="master-vol">
+        <span>Master</span>
+        <input id="masterVol" type="range" min="0" max="100" step="1" value="80" aria-label="Master volume" />
+        <output id="masterVolOut" class="readout readout-sm">80%</output>
+      </label>
+    </div>
+  </section>
+
+  <section id="generators" class="grid" aria-label="Generators"></section>
+
+  <section class="panel presets" aria-label="Presets and data">
+    <h2 class="panel-title">Presets</h2>
+    <p class="hint">Everything is stored in this browser only. Your current setup is saved automatically and restored next time.</p>
+    <div class="preset-row">
+      <input id="presetName" class="text-input" type="text" placeholder="Preset name" maxlength="40" aria-label="Preset name" />
+      <button id="btnSavePreset" class="btn btn-primary btn-sm" type="button">Save current</button>
+    </div>
+    <div class="preset-row">
+      <select id="presetList" class="text-input" aria-label="Saved presets"></select>
+      <button id="btnLoadPreset" class="btn btn-sm" type="button">Load</button>
+      <button id="btnDeletePreset" class="btn btn-ghost btn-sm" type="button">Delete</button>
+    </div>
+    <div class="preset-row">
+      <button id="btnExport" class="btn btn-ghost btn-sm" type="button">Export JSON</button>
+      <button id="btnImport" class="btn btn-ghost btn-sm" type="button">Import JSON</button>
+      <button id="btnReset" class="btn btn-ghost btn-sm btn-danger" type="button">Reset all</button>
+      <input id="importFile" type="file" accept="application/json,.json" hidden />
+    </div>
+  </section>
+
+  <section class="panel safety" aria-label="Safety notice">
+    <h2 class="panel-title">Before you turn it up</h2>
+    <ul class="safety-list">
+      <li>Start at a low volume. Sustained tones can damage hearing and speakers.</li>
+      <li>Ultrasonic content above ~20 kHz is inaudible but still real energy &mdash; tweeters can overheat.</li>
+      <li>Frequencies below ~20 Hz mostly move air, not sound. Most phone speakers reproduce neither end.</li>
+      <li>The usable top end is half the audio sample rate shown above (Nyquist limit).</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="footer">
+  <p>&copy; <span id="year">2026</span> Quantum Billing &mdash; released under the MIT License.</p>
+  <p class="footer-links">
+    <a id="repoLink" href="https://github.com/quantum-billing/frequency-generator" rel="noopener">Source on GitHub</a>
+    <span aria-hidden="true">&middot;</span>
+    <span>Phase 1: web. Android &amp; iOS to follow.</span>
+  </p>
+</footer>
+
+<template id="genTemplate">
+  <article class="card gen">
+    <header class="gen-head">
+      <span class="led" aria-hidden="true"></span>
+      <input class="gen-name" type="text" maxlength="28" aria-label="Generator name" />
+      <div class="gen-head-actions">
+        <button class="icon-btn js-solo" type="button" title="Solo (play only this one)" aria-label="Solo">S</button>
+        <button class="icon-btn js-duplicate" type="button" title="Duplicate" aria-label="Duplicate">&#10697;</button>
+        <button class="icon-btn js-remove" type="button" title="Remove" aria-label="Remove">&#10005;</button>
+      </div>
+    </header>
+
+    <div class="gen-main">
+      <div class="gen-left">
+        <div class="field">
+          <div class="field-head">
+            <span class="field-label">Frequency</span>
+            <output class="readout js-freq-readout">440.0 Hz</output>
+          </div>
+          <div class="freq-row">
+            <input class="slider js-freq-slider" type="range" min="0" max="1000" step="0.1" aria-label="Frequency" />
+            <input class="num-input js-freq-input" type="number" min="0" step="0.1" inputmode="decimal" aria-label="Frequency in hertz" />
+          </div>
+          <div class="scale-row">
+            <span>0 Hz</span>
+            <span class="js-band band">Audible</span>
+            <span class="js-max">20 kHz</span>
+          </div>
+          <div class="nudge-row">
+            <button class="chip js-nudge" data-delta="-10" type="button">&minus;10</button>
+            <button class="chip js-nudge" data-delta="-1" type="button">&minus;1</button>
+            <button class="chip js-nudge" data-delta="-0.1" type="button">&minus;0.1</button>
+            <button class="chip js-nudge" data-delta="0.1" type="button">+0.1</button>
+            <button class="chip js-nudge" data-delta="1" type="button">+1</button>
+            <button class="chip js-nudge" data-delta="10" type="button">+10</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="field-head">
+            <span class="field-label">Volume</span>
+            <output class="readout js-vol-readout">50%</output>
+          </div>
+          <input class="slider js-vol" type="range" min="0" max="100" step="1" aria-label="Volume" />
+        </div>
+
+        <div class="field">
+          <div class="field-head">
+            <span class="field-label">Balance</span>
+            <output class="readout js-pan-readout">Center</output>
+          </div>
+          <input class="slider js-pan" type="range" min="-100" max="100" step="1" aria-label="Stereo balance" />
+          <div class="scale-row"><span>Left</span><span>Center</span><span>Right</span></div>
+        </div>
+      </div>
+
+      <div class="gen-right">
+        <div class="field">
+          <span class="field-label">Waveform</span>
+          <div class="seg-group js-waves" role="group" aria-label="Waveform type">
+            <button class="seg" data-wave="sine" type="button">Sine</button>
+            <button class="seg" data-wave="square" type="button">Square</button>
+            <button class="seg" data-wave="sawtooth" type="button">Saw</button>
+            <button class="seg" data-wave="triangle" type="button">Tri</button>
+          </div>
+        </div>
+        <div class="wave-preview">
+          <canvas class="js-preview" width="520" height="200"></canvas>
+          <p class="js-wave-desc wave-desc"></p>
+        </div>
+      </div>
+    </div>
+
+    <footer class="gen-foot">
+      <button class="btn btn-play js-play" type="button"><span class="ico" aria-hidden="true">&#9654;</span> Play</button>
+      <span class="js-note note-tag"></span>
+    </footer>
+  </article>
+</template>
+
+<script src="./assets/js/storage.js"></script>
+<script src="./assets/js/audio-engine.js"></script>
+<script src="./assets/js/app.js"></script>
+</body>
+</html>
