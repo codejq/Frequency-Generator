@@ -1,0 +1,5 @@
+# Keep the tree LF everywhere: CI and Pages run on Linux, and a stray CRLF
+# rewrite makes an unrelated one-line edit look like a whole-file diff.
+* text=auto eol=lf
+
+*.png binary
