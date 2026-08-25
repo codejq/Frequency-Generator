@@ -1,9 +1,12 @@
 name: CI
 
+# GitHub Pages publishes this repo straight from main:/docs, so there is no
+# deploy workflow - GitHub's own pages-build-deployment handles that on every
+# push. This job is the gate on what goes in.
 on:
-  pull_request:
   push:
-    branches-ignore: [main]
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -20,5 +23,5 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Syntax, JSON and asset-path checks
+      - name: Syntax, JSON, asset-path and translation checks
         run: node scripts/verify.mjs

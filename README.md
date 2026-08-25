@@ -6,10 +6,7 @@ set up remembered in your own browser.
 
 Built and open-sourced by **Quantum Billing** under the MIT License.
 
-**▶ Live app: https://quantum-billing.github.io/frequency-generator/**
-
-> Replace that URL, and the `Source on GitHub` link in `index.html`, with your
-> real organisation and repository name once the repo is pushed.
+**▶ Live app: https://codejq.github.io/Frequency-Generator/**
 
 ![The frequency generator running two oscillators at 47,999 Hz, showing the oscilloscope, the per-generator frequency, waveform, volume and balance controls, and the presets panel](docs/screenshot.png)
 
@@ -64,7 +61,7 @@ on the left. Only the surrounding text mirrors. Values keep Western digits and
 isolated from the bidi algorithm so `440.0 Hz` never renders as `Hz 440.0`.
 
 Adding a third language means adding one block to
-[assets/js/i18n.js](assets/js/i18n.js); CI fails the build if it does not cover
+[docs/assets/js/i18n.js](docs/assets/js/i18n.js); CI fails the build if it does not cover
 every key the other has.
 
 ## Install it on your phone — no app store
@@ -118,35 +115,39 @@ hear higher frequencies than most adults do.
 No build step, no dependencies. Any static file server works:
 
 ```bash
-git clone https://github.com/quantum-billing/frequency-generator.git
-cd frequency-generator
+git clone https://github.com/codejq/Frequency-Generator.git
+cd Frequency-Generator/docs
 
 python -m http.server 8080     # or: npx serve .
 # open http://localhost:8080
 ```
 
-Opening `index.html` straight from the filesystem works too, except that the
-service worker (offline mode) will not register on `file://`.
+Serve the **`docs/` folder**, not the repository root - that folder is the web
+root. Opening `docs/index.html` straight from the filesystem works too, except
+that the service worker (offline mode) will not register on `file://`.
 
-## Deploying your own copy
+## Deploying
 
-The repository ships with a GitHub Actions workflow that publishes the site on
-every push to `main`.
+Pages is configured as **Deploy from a branch → `main` → `/docs`**, so
+`docs/` is the web root and GitHub republishes the site on every push to
+`main` by itself. There is no deploy workflow to run.
 
-1. Push this repository to GitHub.
-2. Go to **Settings → Pages** and set **Source** to **GitHub Actions**.
-3. Push to `main` (or run the *Deploy to GitHub Pages* workflow manually).
+That is why the app lives in `docs/` rather than the repository root, and why
+every path inside it is relative - which is also what makes the project
+sub-path (`/Frequency-Generator/`) work without any base-URL configuration.
 
-The site is served from the repository root, so `https://<owner>.github.io/<repo>/`.
-Every path in the app is relative, which is what makes a project-subdirectory
-Pages URL work without configuration.
+One consequence worth knowing: **branch deployments are not gated by CI.** A
+push to `main` goes live whether or not the checks pass. If you would rather
+have the checks gate the deploy, switch **Settings → Pages → Source** to
+**GitHub Actions** and restore the deploy workflow - it is in the git history
+at `.github/workflows/deploy-pages.yml`, and only needs its upload path
+changed from `.` to `./docs`.
 
-### Workflows
+### Workflow
 
 | Workflow | Trigger | Does |
 |---|---|---|
-| `.github/workflows/ci.yml` | pull requests, non-`main` pushes | Runs the static checks. |
-| `.github/workflows/deploy-pages.yml` | push to `main`, manual | Runs the checks, then deploys to Pages. |
+| `.github/workflows/ci.yml` | pushes to `main`, pull requests, manual | Runs the static checks. |
 
 ## Checks
 
@@ -166,18 +167,19 @@ is the other failure that looks fine locally and 404s on Pages.
 ## Project layout
 
 ```
-index.html                    markup and the generator card template
-manifest.webmanifest          PWA metadata
-sw.js                         service worker (network-first, cache fallback)
-assets/css/styles.css         all styling, including the RTL rules
-assets/js/storage.js          localStorage wrapper, guarded for private mode
-assets/js/i18n.js             English and Arabic dictionaries, direction switch
-assets/js/audio-engine.js     Web Audio: context, master bus, per-voice chains
-assets/js/app.js              state, UI, presets, visualiser
-assets/js/install.js          add-to-home-screen prompt
-scripts/verify.mjs            static checks used by CI
-docs/ROADMAP.md               phase 2: Android and iOS
-docs/screenshot.png           the image above
+docs/                              the published site (GitHub Pages web root)
+  index.html                       markup and the generator card template
+  manifest.webmanifest             PWA metadata
+  sw.js                            service worker (network-first, cache fallback)
+  assets/css/styles.css            all styling, including the RTL rules
+  assets/js/storage.js             localStorage wrapper, guarded for private mode
+  assets/js/i18n.js                English and Arabic dictionaries, direction switch
+  assets/js/audio-engine.js        Web Audio: context, master bus, per-voice chains
+  assets/js/app.js                 state, UI, presets, visualiser
+  assets/js/install.js             add-to-home-screen prompt
+  ROADMAP.md                       phase 2: Android and iOS
+  screenshot.png                   the image above
+scripts/verify.mjs                 static checks used by CI
 ```
 
 Plain ES5-compatible JavaScript, no framework, no bundler. The whole app is a

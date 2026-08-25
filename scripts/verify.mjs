@@ -13,6 +13,9 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+/* GitHub Pages serves this repo from /docs, so docs/ is the web root and
+   every relative path in the app resolves against it, not the repo root. */
+const site = join(root, 'docs');
 const problems = [];
 const checks = [];
 
@@ -29,7 +32,7 @@ const scripts = [
   'sw.js'
 ];
 for (const file of scripts) {
-  const path = join(root, file);
+  const path = join(site, file);
   if (!existsSync(path)) { fail(`${file} is missing`); continue; }
   try {
     execFileSync(process.execPath, ['--check', path], { stdio: 'pipe' });
@@ -41,7 +44,7 @@ for (const file of scripts) {
 
 /* 2. JSON files are valid */
 for (const file of ['manifest.webmanifest']) {
-  const path = join(root, file);
+  const path = join(site, file);
   if (!existsSync(path)) { fail(`${file} is missing`); continue; }
   try {
     JSON.parse(readFileSync(path, 'utf8'));
@@ -52,31 +55,31 @@ for (const file of ['manifest.webmanifest']) {
 }
 
 /* 3. every local path referenced by index.html exists */
-const html = readFileSync(join(root, 'index.html'), 'utf8');
+const html = readFileSync(join(site, 'index.html'), 'utf8');
 const refs = [...html.matchAll(/(?:href|src)="(\.\/[^"]+)"/g)].map((m) => m[1]);
 for (const ref of new Set(refs)) {
   /* hreflang alternates are query strings on this same page, not files. */
   if (ref.includes('?')) { ok(`index.html -> ${ref} (same page)`); continue; }
-  const path = join(root, ref.replace(/^\.\//, ''));
+  const path = join(site, ref.replace(/^\.\//, ''));
   if (existsSync(path)) { ok(`index.html -> ${ref}`); } else { fail(`index.html references a missing file: ${ref}`); }
 }
 
 /* 4. every file the service worker precaches exists */
-const sw = readFileSync(join(root, 'sw.js'), 'utf8');
+const sw = readFileSync(join(site, 'sw.js'), 'utf8');
 const assetBlock = sw.match(/var ASSETS = \[([\s\S]*?)\];/);
 if (!assetBlock) {
   fail('sw.js: could not find the ASSETS precache list');
 } else {
   const paths = [...assetBlock[1].matchAll(/'([^']+)'/g)].map((m) => m[1]).filter((p) => p !== './');
   for (const p of paths) {
-    const path = join(root, p.replace(/^\.\//, ''));
+    const path = join(site, p.replace(/^\.\//, ''));
     if (existsSync(path)) { ok(`sw.js precache -> ${p}`); } else { fail(`sw.js precaches a missing file: ${p}`); }
   }
 }
 
 /* 5. every element the app looks up actually exists in the markup.
       A renamed id or class is a runtime TypeError that no parser catches. */
-const app = readFileSync(join(root, 'assets/js/app.js'), 'utf8');
+const app = readFileSync(join(site, 'assets/js/app.js'), 'utf8');
 
 const htmlIds = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((m) => m[1]));
 const usedIds = new Set([...app.matchAll(/\$\('([^']+)'\)/g)].map((m) => m[1]));
@@ -98,7 +101,7 @@ for (const attr of usedAttrs) {
 /* 6. the two dictionaries agree, and every key the page asks for exists.
       A missing Arabic key falls back to English silently at runtime, which is
       exactly the kind of gap nobody notices until a user reports it. */
-const i18n = readFileSync(join(root, 'assets/js/i18n.js'), 'utf8');
+const i18n = readFileSync(join(site, 'assets/js/i18n.js'), 'utf8');
 
 function keysOf(lang) {
   const block = i18n.match(new RegExp(`DICT\\.${lang} = \\{([\\s\\S]*?)\\n  \\};`));
@@ -151,13 +154,16 @@ if (!en || !ar) {
   else { ok(`all ${required.length} band and waveform keys present in both languages`); }
 }
 
-/* 7. images the README embeds exist - a broken image renders as alt text on
-      the repository page and is easy not to notice. */
+/* 7. every local path the README links to or embeds exists. A broken image
+      renders as alt text and a broken link 404s on the repository page -
+      both easy not to notice, and both easy to cause by moving a file. */
 const readme = readFileSync(join(root, 'README.md'), 'utf8');
-const images = [...readme.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].map((m) => m[1]);
-for (const img of images) {
-  if (/^https?:/.test(img)) continue;
-  if (existsSync(join(root, img))) { ok(`README image -> ${img}`); } else { fail(`README embeds a missing image: ${img}`); }
+const links = [...readme.matchAll(/!?\[[^\]]*\]\(([^)]+)\)/g)].map((m) => m[1]);
+for (const link of new Set(links)) {
+  if (/^(https?:|#|mailto:)/.test(link)) continue;
+  const target = link.split('#')[0];
+  if (!target) continue;
+  if (existsSync(join(root, target))) { ok(`README link -> ${target}`); } else { fail(`README links to a missing path: ${target}`); }
 }
 
 /* 8. the licence is present and says MIT */
